@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDirection
@@ -27,7 +28,8 @@ fun StyledText(
     minLines: Int = 1,
     overflow: TextOverflow = TextOverflow.Ellipsis,
     highlightText: Boolean = false,
-    highlightThickness: FontWeight = FontWeight.SemiBold
+    highlightThickness: FontWeight = FontWeight.SemiBold,
+    onTextLayout: ((TextLayoutResult) -> Unit)? = null
 ) {
     when (highlightText) {
         true -> {
@@ -47,6 +49,7 @@ fun StyledText(
 
         false -> {
             BasicText(
+                onTextLayout = onTextLayout,
                 modifier = modifier,
                 text = text,
                 style = style.copy(

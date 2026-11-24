@@ -69,8 +69,6 @@ import ua.acclorite.book_story.domain.model.book.NodeId
 import ua.acclorite.book_story.presentation.reader.ReaderEvent
 import ua.acclorite.book_story.presentation.reader.ScrollTarget
 import ua.acclorite.book_story.presentation.reader.model.ReaderPagedDirection
-import ua.acclorite.book_story.ui.common.components.common.SelectionContainer
-import ua.acclorite.book_story.ui.common.components.common.StyledText
 import ua.acclorite.book_story.ui.common.helpers.LocalActivity
 import ua.acclorite.book_story.ui.common.helpers.noRippleClickable
 import ua.acclorite.book_story.ui.common.helpers.showToast
@@ -165,7 +163,9 @@ fun ReaderLayoutPaged(
     var anchorOffset by rememberSaveable(book.uuid) { mutableIntStateOf(book.progress.currentNodeIntraOffset) }
     var pendingTurn by remember { mutableIntStateOf(0) }
 
-    SelectionContainer(
+    ReaderSelectionContainer(
+        book = book,
+        nodes = readerNodes,
         onCopyRequested = {
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
                 activity.getString(R.string.copied).showToast(activity, longToast = false)
@@ -465,6 +465,7 @@ private fun ReaderPagedPage(
                     val previousRow = page.items.getOrNull(index - 1)?.node?.node?.content as? NodeContent.TableRow
                     val nextRow = nextItem?.node?.node?.content as? NodeContent.TableRow
                     ReaderTableRow(
+                        node = item.node,
                         cells = item.tableCells,
                         columns = (item.node as ReaderNode.Paragraph).tableColumns(),
                         style = requireNotNull(item.style).copy(color = fontColor),
@@ -478,7 +479,9 @@ private fun ReaderPagedPage(
                         )
                     )
                 }
-                item.text != null -> StyledText(
+                item.text != null -> ReaderSelectableText(
+                    node = item.node,
+                    displayStart = item.startOffset,
                     text = item.text,
                     style = requireNotNull(item.style).copy(color = fontColor),
                     modifier = Modifier

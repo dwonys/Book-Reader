@@ -16,6 +16,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -63,7 +64,6 @@ import ua.acclorite.book_story.presentation.reader.ReaderEvent
 import ua.acclorite.book_story.presentation.reader.ScrollTarget
 import ua.acclorite.book_story.ui.common.components.common.AnimatedVisibility
 import ua.acclorite.book_story.ui.common.components.common.LazyColumnWithScrollbar
-import ua.acclorite.book_story.ui.common.components.common.SelectionContainer
 import ua.acclorite.book_story.ui.common.components.common.SpacedItem
 import ua.acclorite.book_story.ui.common.components.progress_indicator.CircularProgressIndicator
 import ua.acclorite.book_story.ui.common.helpers.LocalActivity
@@ -289,7 +289,10 @@ fun ReaderLayoutContinuous(
             }
     }
 
-    SelectionContainer(
+    ReaderSelectionContainer(
+        book = book,
+        nodes = readerNodes,
+        scrollBy = { listState.scrollBy(it) },
         onCopyRequested = {
             if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
                 activity.getString(R.string.copied)

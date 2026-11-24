@@ -25,9 +25,8 @@ import kotlinx.collections.immutable.persistentListOf
 import ua.acclorite.book_story.R
 import ua.acclorite.book_story.data.settings.SettingsManager
 import ua.acclorite.book_story.presentation.browse.BrowseModel
-import ua.acclorite.book_story.presentation.browse.BrowseScreen
 import ua.acclorite.book_story.presentation.history.HistoryModel
-import ua.acclorite.book_story.presentation.history.HistoryScreen
+import ua.acclorite.book_story.presentation.words.WordsScreen
 import ua.acclorite.book_story.presentation.library.LibraryModel
 import ua.acclorite.book_story.presentation.library.LibraryScreen
 import ua.acclorite.book_story.presentation.navigator.NavigatorItem
@@ -95,18 +94,11 @@ class MainActivity : AppCompatActivity() {
                         unselectedIcon = R.drawable.library_screen_outlined
                     ),
                     NavigatorItem(
-                        screen = HistoryScreen,
-                        title = R.string.history_screen,
-                        tooltip = R.string.history_content_desc,
-                        selectedIcon = R.drawable.history_screen_filled,
-                        unselectedIcon = R.drawable.history_screen_outlined
-                    ),
-                    NavigatorItem(
-                        screen = BrowseScreen,
-                        title = R.string.browse_screen,
-                        tooltip = R.string.browse_content_desc,
-                        selectedIcon = R.drawable.browse_screen_filled,
-                        unselectedIcon = R.drawable.browse_screen_outlined
+                        screen = WordsScreen,
+                        title = R.string.words_screen,
+                        tooltip = R.string.words_screen,
+                        selectedIcon = R.drawable.words_screen_filled,
+                        unselectedIcon = R.drawable.words_screen_outlined
                     )
                 )
 
@@ -137,14 +129,14 @@ class MainActivity : AppCompatActivity() {
                             },
                             contentKey = {
                                 when (it) {
-                                    LibraryScreen, HistoryScreen, BrowseScreen -> "tabs"
+                                    LibraryScreen, WordsScreen -> "tabs"
                                     else -> it
                                 }
                             },
                             backHandlerEnabled = { it != StartScreen }
                         ) { screen ->
                             when (screen) {
-                                LibraryScreen, HistoryScreen, BrowseScreen -> {
+                                LibraryScreen, WordsScreen -> {
                                     NavigatorTabs(
                                         currentTab = screen,
                                         transitionSpec = {

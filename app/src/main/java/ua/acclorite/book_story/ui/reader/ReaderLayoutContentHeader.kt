@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import ua.acclorite.book_story.domain.model.book.NodeContent
-import ua.acclorite.book_story.ui.common.components.common.StyledText
 import ua.acclorite.book_story.ui.reader.model.ReaderNode
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -34,7 +33,8 @@ fun ReaderLayoutContentHeader(
         Modifier
             .fillMaxWidth()
     ) {
-        StyledText(
+        ReaderSelectableText(
+            node = header,
             text = header.title,
             modifier = Modifier
                 .padding(horizontal = sidePadding)

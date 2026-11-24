@@ -73,7 +73,7 @@ class ReaderModel @Inject constructor(
                             )
                         }
                         updateBookUseCase(_state.value.book)
-                        _paginationNodeId.update { _state.value.book.progress.currentNodeId }
+                        _paginationNodeId.update { _state.value.scrollTarget?.nodeId ?: _state.value.book.progress.currentNodeId }
 
                         LibraryScreen.refreshListChannel.trySend(0)
                         HistoryScreen.refreshListChannel.trySend(0)
@@ -117,13 +117,13 @@ class ReaderModel @Inject constructor(
                                         _state.update {
                                             it.copy(
                                                 book = book,
-                                                scrollTarget = ScrollTarget(
+                                                scrollTarget = it.scrollTarget ?: ScrollTarget(
                                                     book.progress.currentNodeId,
                                                     book.progress.currentNodeIntraOffset
                                                 )
                                             )
                                         }
-                                        _paginationNodeId.update { book.progress.currentNodeId }
+                                        _paginationNodeId.update { _state.value.scrollTarget?.nodeId ?: book.progress.currentNodeId }
                                     }
 
                                     LibraryScreen.refreshListChannel.trySend(0)
@@ -483,11 +483,16 @@ class ReaderModel @Inject constructor(
         }
     }
 
-    fun init(bookId: Int) {
+    fun init(
+        bookId: Int,
+        passageNode: Int? = null,
+        passageOffset: Int = 0,
+        passageBookUuid: String? = null
+    ) {
         viewModelScope.launch(Dispatchers.Default) {
             val book = getBookUseCase(bookId)
 
-            if (book == null) {
+            if (book == null || (passageBookUuid != null && passageBookUuid != book.uuid)) {
                 _effects.emit(ReaderEffect.OnNavigateBack)
                 return@launch
             }
@@ -498,8 +503,8 @@ class ReaderModel @Inject constructor(
                 ReaderState(
                     book = book,
                     scrollTarget = ScrollTarget(
-                        nodeId = book.progress.currentNodeId,
-                        nodeIntraOffset = book.progress.currentNodeIntraOffset
+                        nodeId = passageNode?.let(::NodeId) ?: book.progress.currentNodeId,
+                        nodeIntraOffset = if (passageNode != null) passageOffset else book.progress.currentNodeIntraOffset
                     )
                 )
             }

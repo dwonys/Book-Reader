@@ -20,7 +20,6 @@ import ua.acclorite.book_story.domain.model.book.NodeContent
 import ua.acclorite.book_story.ui.reader.model.tableCells
 import ua.acclorite.book_story.ui.reader.model.tableColumns
 import ua.acclorite.book_story.presentation.reader.ReaderEvent
-import ua.acclorite.book_story.ui.common.components.common.StyledText
 import ua.acclorite.book_story.ui.common.helpers.noRippleClickable
 import ua.acclorite.book_story.ui.reader.model.ReaderNode
 
@@ -60,6 +59,7 @@ fun ReaderLayoutContentParagraph(
     val table = paragraph.node.content as? NodeContent.TableRow
     if (table != null) {
         ReaderTableRow(
+            node = paragraph,
             cells = paragraph.tableCells(),
             columns = paragraph.tableColumns(),
             style = table.textBlockStyle(paragraphTextStyle),
@@ -76,7 +76,8 @@ fun ReaderLayoutContentParagraph(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = horizontalAlignment
     ) {
-        StyledText(
+        ReaderSelectableText(
+            node = paragraph,
             text = paragraph.text,
             modifier = Modifier
                 .fillMaxWidth()

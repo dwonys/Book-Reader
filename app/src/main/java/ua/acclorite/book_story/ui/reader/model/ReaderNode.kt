@@ -28,18 +28,20 @@ private fun Constraints.insetTextBlock(padding: Int): Constraints = copy(
 
 @Immutable
 sealed class ReaderNode(val node: Node) {
-    fun toDisplayOffset(sourceOffset: Int): Int {
+    fun toDisplayOffset(sourceOffset: Int, includeFollowingUrl: Boolean = true): Int {
         if (this !is Paragraph || linkUrls.isEmpty()) return sourceOffset
-        return sourceOffset + linkUrls.takeWhile { it.end <= sourceOffset }.sumOf { it.suffix.length }
+        return sourceOffset + linkUrls.takeWhile {
+            it.end < sourceOffset || (includeFollowingUrl && it.end == sourceOffset)
+        }.sumOf { it.suffix.length }
     }
 
-    fun toSourceOffset(displayOffset: Int): Int {
+    fun toSourceOffset(displayOffset: Int, boundary: Boolean = false): Int {
         if (this !is Paragraph || linkUrls.isEmpty()) return displayOffset
         var added = 0
         for (link in linkUrls) {
             val start = link.end + added
             if (displayOffset < start) break
-            if (displayOffset < start + link.suffix.length) return (link.end - 1).coerceAtLeast(0)
+            if (displayOffset < start + link.suffix.length) return if (boundary) link.end else (link.end - 1).coerceAtLeast(0)
             added += link.suffix.length
         }
         return (displayOffset - added).coerceAtLeast(0)

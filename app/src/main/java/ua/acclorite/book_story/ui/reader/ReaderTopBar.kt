@@ -15,6 +15,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -58,6 +67,25 @@ fun ReaderTopBar(
     navigateBack: (ReaderEvent.OnNavigateBack) -> Unit
 ) {
     val activity = LocalActivity.current
+    var dictionaryOpen by remember { mutableStateOf(false) }
+    if (dictionaryOpen) {
+        var query by remember { mutableStateOf("") }
+        var word by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { dictionaryOpen = false },
+            title = { Text("Dictionary") },
+            text = {
+                Column {
+                    OutlinedTextField(query, { query = it }, singleLine = true, label = { Text("Word") })
+                    if (word.isNotEmpty()) ReaderDictionaryCard(word, expandedInitially = true)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { word = query.trim() }, enabled = query.isNotBlank()) { Text("Look up") }
+            },
+            dismissButton = { TextButton(onClick = { dictionaryOpen = false }) { Text("Close") } }
+        )
+    }
     val animatedChapterProgress = animateFloatAsState(
         targetValue = currentChapterProgress
     )
@@ -129,6 +157,12 @@ fun ReaderTopBar(
                 )
             },
             actions = {
+                IconButton(
+                    icon = Icons.Default.Translate,
+                    contentDescription = R.string.reader_dictionary_lookup,
+                    disableOnClick = false,
+                    enabled = !lockMenu
+                ) { dictionaryOpen = true }
                 if (!chaptersEmpty) {
                     IconButton(
                         icon = Icons.Rounded.Menu,

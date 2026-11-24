@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Removing DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION, which is not used -->
     <uses-permission
         android:name="ua.acclorite.book_story.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"

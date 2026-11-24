@@ -12,6 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.FolderOpen
+import ua.acclorite.book_story.presentation.history.HistoryScreen
+import ua.acclorite.book_story.presentation.browse.BrowseScreen
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -41,6 +45,28 @@ fun NavigatorBottomSheet() {
                 .padding(bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            item {
+                NavigatorBottomSheetItem(
+                    title = stringResource(id = R.string.browse_screen),
+                    imageVector = Icons.Default.FolderOpen,
+                    primary = false,
+                    position = Position.SOLO
+                ) {
+                    navigator.push(BrowseScreen)
+                    navigatorBottomSheetChannel.trySend(false)
+                }
+            }
+            item {
+                NavigatorBottomSheetItem(
+                    title = stringResource(id = R.string.history_screen),
+                    imageVector = Icons.Default.History,
+                    primary = false,
+                    position = Position.SOLO
+                ) {
+                    navigator.push(HistoryScreen)
+                    navigatorBottomSheetChannel.trySend(false)
+                }
+            }
             item {
                 NavigatorBottomSheetItem(
                     title = stringResource(id = R.string.about_screen),

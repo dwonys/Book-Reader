@@ -60,7 +60,12 @@ import ua.acclorite.book_story.ui.reader.ReaderContent
 import ua.acclorite.book_story.ui.reader.ReaderEffects
 
 @Parcelize
-data class ReaderScreen(val bookId: Int) : Screen, Parcelable {
+data class ReaderScreen(
+    val bookId: Int,
+    val passageNode: Int? = null,
+    val passageOffset: Int = 0,
+    val passageBookUuid: String? = null
+) : Screen, Parcelable {
 
     companion object {
         const val CHAPTERS_DRAWER = "chapters_drawer"
@@ -415,7 +420,7 @@ data class ReaderScreen(val bookId: Int) : Screen, Parcelable {
         }
 
         LaunchedEffect(Unit) {
-            screenModel.init(bookId = bookId)
+            screenModel.init(bookId, passageNode, passageOffset, passageBookUuid)
         }
         LaunchedEffect(settings.fullscreen.value) {
             screenModel.onEvent(

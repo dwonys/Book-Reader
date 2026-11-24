@@ -523,4 +523,6 @@
     <string name="remove_content_desc">Remove</string>
     <string name="note_content_desc">Note</string>
 
+    <string name="words_screen">Words</string>
+    <string name="reader_dictionary_lookup">Look up a word</string>
 </resources>

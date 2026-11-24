@@ -21,6 +21,7 @@ android {
         applicationId = "ua.acclorite.book_story"
         minSdk = 26
         targetSdk = 36
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         versionCode = 14
         versionName = "1.8.0"
 
@@ -211,6 +212,7 @@ dependencies {
 
     // UI testing
     androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.10.0")
+    androidTestImplementation("androidx.test:runner:1.7.0")
     debugImplementation("androidx.compose.ui:ui-test-manifest:1.10.0")
     debugImplementation("androidx.compose.ui:ui-tooling:1.10.0")
     kspAndroidTest("com.google.dagger:hilt-android-compiler:2.57.2")

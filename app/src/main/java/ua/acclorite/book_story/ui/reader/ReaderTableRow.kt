@@ -20,7 +20,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import ua.acclorite.book_story.ui.common.components.common.StyledText
+import ua.acclorite.book_story.ui.reader.model.ReaderNode
 import ua.acclorite.book_story.ui.reader.model.ReaderTableCell
 import ua.acclorite.book_story.ui.reader.model.ReaderTableCellPadding
 import ua.acclorite.book_story.ui.reader.model.tableCellWidth
@@ -28,6 +28,7 @@ import ua.acclorite.book_story.ui.reader.model.tableColumnX
 
 @Composable
 fun ReaderTableRow(
+    node: ReaderNode,
     cells: List<ReaderTableCell>,
     columns: Int,
     style: TextStyle,
@@ -89,7 +90,9 @@ fun ReaderTableRow(
         },
         content = {
             cells.forEach { cell ->
-                StyledText(
+                ReaderSelectableText(
+                    node = node,
+                    displayStart = cell.startOffset,
                     text = cell.text,
                     style = style,
                     modifier = Modifier.padding(ReaderTableCellPadding)
