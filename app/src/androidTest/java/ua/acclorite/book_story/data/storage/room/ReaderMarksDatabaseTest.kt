@@ -1,5 +1,6 @@
 package ua.acclorite.book_story.data.storage.room
 
+import android.content.Context
 import androidx.room.Room
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.flow.first
@@ -15,7 +16,7 @@ class ReaderMarksDatabaseTest {
         val databaseName = "reader-marks-test.db"
         context.deleteDatabase(databaseName)
         try {
-            Room.databaseBuilder(context, ReaderMarksDatabase::class.java, databaseName).build().use { db ->
+            withDatabase(context, databaseName) { db ->
                 val dao = db.marks
                 dao.insert(HighlightEntity(
                     bookUuid = "book", bookId = 8, bookTitle = "Title", author = "Author",
@@ -29,7 +30,7 @@ class ReaderMarksDatabaseTest {
                 ))
                 dao.cache(DictionaryEntry("quote", "quote", null, null, "noun", "A quotation", null, null, null))
             }
-            Room.databaseBuilder(context, ReaderMarksDatabase::class.java, databaseName).build().use { db ->
+            withDatabase(context, databaseName) { db ->
                 val mark = db.marks.highlights("book").first().single()
                 assertEquals(3, mark.startNode)
                 assertEquals(6, mark.endOffset)
@@ -43,6 +44,19 @@ class ReaderMarksDatabaseTest {
             }
         } finally {
             context.deleteDatabase(databaseName)
+        }
+    }
+
+    private suspend fun withDatabase(
+        context: Context,
+        name: String,
+        block: suspend (ReaderMarksDatabase) -> Unit
+    ) {
+        val db = Room.databaseBuilder(context, ReaderMarksDatabase::class.java, name).build()
+        try {
+            block(db)
+        } finally {
+            db.close()
         }
     }
 }
