@@ -25,7 +25,7 @@ jobs:
           name: book-story-debug
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-      - run: bash gradlew :app:testDebugUnitTest :app:lintDebug
+      - run: bash gradlew --continue :app:testDebugUnitTest :app:lintDebug
 
   reader-instrumentation:
     runs-on: ubuntu-latest
