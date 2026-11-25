@@ -7,7 +7,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -29,7 +33,37 @@ import ua.acclorite.book_story.ui.reader.model.ReaderNode
 class ReaderSelectionGestureTest {
     @get:Rule val compose = createComposeRule()
 
-    @Test fun longPressShowsDictionaryAndHandles() {
+    @Test fun longPressShowsDictionaryAboveWordAndBothHandles() {
+        showParagraph("dictionary-gesture-test")
+        selectWord()
+        compose.onNodeWithContentDescription("Selection start").assertExists()
+        compose.onNodeWithContentDescription("Selection end").assertExists()
+        val card = compose.onNodeWithText("Details").fetchSemanticsNode().boundsInRoot
+        val paragraph = compose.onNodeWithTag("paragraph").fetchSemanticsNode().boundsInRoot
+        check(card.bottom < paragraph.top)
+    }
+
+    @Test fun tapSavedHighlightOffersRemoval() {
+        showParagraph("highlight-gesture-test")
+        selectWord()
+        compose.onNodeWithText("Highlight").performClick()
+        val removeAction = SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions)
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(removeAction).fetchSemanticsNodes().any { node ->
+                node.config[SemanticsActions.CustomActions].any { it.label.startsWith("Remove highlight:") }
+            }
+        }
+        compose.onNodeWithTag("paragraph").performTouchInput { click(Offset(8f, center.y)) }
+        compose.onNodeWithText("Remove highlight?").assertExists()
+        compose.onNodeWithText("Remove highlight").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(removeAction).fetchSemanticsNodes().none { node ->
+                node.config[SemanticsActions.CustomActions].any { it.label.startsWith("Remove highlight:") }
+            }
+        }
+    }
+
+    private fun showParagraph(bookUuid: String) {
         val word = "Café"
         val paragraph = ReaderNode.Paragraph(
             Node(NodeId(0), NodePosition(word.length, 0), NodeContent.Paragraph(word, emptyList())),
@@ -38,7 +72,7 @@ class ReaderSelectionGestureTest {
         compose.setContent {
             MaterialTheme {
                 ReaderSelectionContainer(
-                    book = Book.default.copy(uuid = "gesture-test"),
+                    book = Book.default.copy(uuid = bookUuid),
                     nodes = listOf(paragraph),
                     onCopyRequested = {},
                     onShareRequested = {},
@@ -46,7 +80,7 @@ class ReaderSelectionGestureTest {
                     onTranslateRequested = {},
                     onDictionaryRequested = {}
                 ) {
-                    Column(Modifier.padding(top = 64.dp)) {
+                    Column(Modifier.padding(top = 320.dp)) {
                         ReaderSelectableText(
                             paragraph, paragraph.text, TextStyle(fontSize = 24.sp),
                             Modifier.fillMaxWidth().testTag("paragraph")
@@ -55,11 +89,11 @@ class ReaderSelectionGestureTest {
                 }
             }
         }
+    }
+
+    private fun selectWord() {
         compose.onNodeWithTag("paragraph").performTouchInput {
             longClick(Offset(8f, center.y))
         }
-        compose.onNodeWithContentDescription("Selection start").assertExists()
-        compose.onNodeWithContentDescription("Selection end").assertExists()
-        compose.onNodeWithText("Details").assertExists()
     }
 }

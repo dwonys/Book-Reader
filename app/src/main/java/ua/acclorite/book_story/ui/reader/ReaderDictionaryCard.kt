@@ -2,6 +2,7 @@ package ua.acclorite.book_story.ui.reader
 
 import android.media.MediaPlayer
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
@@ -12,6 +13,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -44,6 +46,7 @@ internal fun ReaderDictionaryCard(
     saved: Boolean = false,
     onSave: (() -> Unit)? = null,
     onHighlight: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
     onExternalDictionary: (() -> Unit)? = null,
     expandedInitially: Boolean = false
 ) {
@@ -61,18 +64,9 @@ internal fun ReaderDictionaryCard(
         entry = lookupReaderWord(dao, word)
         loading = false
     }
-    Column(Modifier.padding(horizontal = 12.dp, vertical = 6.dp)) {
+    Column(modifier.padding(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(word, style = MaterialTheme.typography.titleMedium)
-        entry?.let { item ->
-            val subtitle = listOfNotNull(item.partOfSpeech, item.phonetic).joinToString(" · ")
-            if (subtitle.isNotBlank()) Text(subtitle)
-            item.definition?.let { Text(it, maxLines = if (expanded) 8 else 3, overflow = TextOverflow.Ellipsis) }
-            item.examples?.let { Text(if (expanded) it else it.lineSequence().first(), maxLines = if (expanded) 10 else 2) }
-            if (expanded) {
-                item.synonyms?.let { Text("Synonyms: $it") }
-                item.antonyms?.let { Text("Antonyms: $it") }
-            }
-        } ?: Text(if (loading) "Looking up word…" else "Definition unavailable")
+        DictionaryDetails(entry, loading, expanded)
         if (audioFailed) Text("Audio unavailable")
         Row(Modifier.horizontalScroll(rememberScrollState())) {
             entry?.audio?.let { audio ->
@@ -102,6 +96,39 @@ internal fun ReaderDictionaryCard(
             onHighlight?.let { TextButton(onClick = it) { Text("Highlight") } }
             TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "Less" else "Details") }
             if (expanded) onExternalDictionary?.let { TextButton(onClick = it) { Text("Dictionary app") } }
+        }
+    }
+}
+
+@Composable
+internal fun SavedWordDefinition(word: String) {
+    val context = LocalContext.current
+    val dao = remember(context) { ReaderMarksDatabase.get(context).marks }
+    val result by produceState<Pair<DictionaryEntry?, Boolean>>(null to true, dao, word) {
+        value = null to true
+        value = lookupReaderWord(dao, word) to false
+    }
+    DictionaryDetails(result.first, result.second, expanded = true)
+}
+
+@Composable
+private fun DictionaryDetails(entry: DictionaryEntry?, loading: Boolean, expanded: Boolean) {
+    if (entry == null) {
+        Text(if (loading) "Looking up word…" else "Definition unavailable")
+        return
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        val subtitle = listOfNotNull(entry.partOfSpeech, entry.phonetic).joinToString(" · ")
+        if (subtitle.isNotBlank()) Text(subtitle, style = MaterialTheme.typography.bodySmall)
+        entry.definition?.let { Text(it, maxLines = if (expanded) 8 else 3, overflow = TextOverflow.Ellipsis) }
+        entry.examples?.let {
+            val examples = if (expanded) it else it.lineSequence().first()
+            Text("Example: $examples", style = MaterialTheme.typography.bodyMedium,
+                maxLines = if (expanded) 10 else 2, overflow = TextOverflow.Ellipsis)
+        }
+        if (expanded) {
+            entry.synonyms?.let { Text("Synonyms: $it", style = MaterialTheme.typography.bodyMedium) }
+            entry.antonyms?.let { Text("Antonyms: $it", style = MaterialTheme.typography.bodyMedium) }
         }
     }
 }

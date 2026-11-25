@@ -12,6 +12,14 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.absoluteOffset
@@ -81,6 +89,10 @@ internal data class ReaderAnchor(val nodeId: Int, val offset: Int) : Comparable<
 
 internal data class ReaderRange(val start: ReaderAnchor, val end: ReaderAnchor)
 
+private fun HighlightEntity.readerRange() = ReaderRange(
+    ReaderAnchor(startNode, startOffset), ReaderAnchor(endNode, endOffset)
+)
+
 private class TextFragment(val node: ReaderNode, val displayStart: Int) {
     var layout by mutableStateOf<TextLayoutResult?>(null)
     var coordinates: LayoutCoordinates? = null
@@ -91,6 +103,15 @@ private class TextFragment(val node: ReaderNode, val displayStart: Int) {
 
     fun offset(anchor: ReaderAnchor, start: Boolean): Int =
         node.toDisplayOffset(anchor.offset, includeFollowingUrl = start) - displayStart
+
+    fun containsHighlightAt(highlight: HighlightEntity, point: Offset): Boolean {
+        val result = layout ?: return false
+        val saved = range(highlight.readerRange(), result.layoutInput.text.length) ?: return false
+        val offset = result.getOffsetForPosition(point)
+        return sequenceOf(offset, offset - 1).any {
+            it in saved && result.getBoundingBox(it).contains(point)
+        }
+    }
 
     fun range(selection: ReaderRange, length: Int): IntRange? {
         if (node.node.id.id !in selection.start.nodeId..selection.end.nodeId) return null
@@ -106,8 +127,9 @@ private class ReaderSelection {
     var highlights by mutableStateOf(emptyList<HighlightEntity>())
     var dragPoint by mutableStateOf<Offset?>(null)
     var draggingStart = false
+    var highlightToRemove by mutableStateOf<HighlightEntity?>(null)
 
-    fun handle(anchor: ReaderAnchor, start: Boolean): Offset? {
+    fun handle(anchor: ReaderAnchor, start: Boolean, lineTop: Boolean = false): Offset? {
         for (fragment in fragments.keys) {
             if (fragment.node.node.id.id != anchor.nodeId || fragment.bounds.isEmpty) continue
             val layout = fragment.layout ?: continue
@@ -120,7 +142,8 @@ private class ReaderSelection {
                 androidx.compose.ui.text.style.ResolvedTextDirection.Rtl
             val box = layout.getBoundingBox(character)
             val edge = if (start == rtl) box.right else box.left
-            val position = fragment.origin + Offset(edge, layout.getLineBottom(line))
+            val y = if (lineTop) layout.getLineTop(line) else layout.getLineBottom(line)
+            val position = fragment.origin + Offset(edge, y)
             if (position.y in fragment.bounds.top..fragment.bounds.bottom) return position
         }
         return null
@@ -180,11 +203,7 @@ internal fun ReaderSelectableText(
             .drawBehind {
                 val layout = fragment.layout ?: return@drawBehind
                 for (highlight in selection.highlights) {
-                    val anchored = ReaderRange(
-                        ReaderAnchor(highlight.startNode, highlight.startOffset),
-                        ReaderAnchor(highlight.endNode, highlight.endOffset)
-                    )
-                    val saved = fragment.range(anchored, text.length) ?: continue
+                    val saved = fragment.range(highlight.readerRange(), text.length) ?: continue
                     if (!saved.isEmpty()) {
                         drawPath(layout.getPathForRange(saved.first, saved.last + 1),
                             Color(highlight.color).copy(alpha = 0.35f))
@@ -194,6 +213,14 @@ internal fun ReaderSelectableText(
                 if (!range.isEmpty()) drawPath(layout.getPathForRange(range.first, range.last + 1), color)
             }
             .semantics {
+                customActions = selection.highlights.filter {
+                    fragment.range(it.readerRange(), text.length)?.isEmpty() == false
+                }.map { highlight ->
+                    CustomAccessibilityAction("Remove highlight: ${highlight.quote.take(40)}") {
+                        selection.highlightToRemove = highlight
+                        true
+                    }
+                }
                 onLongClick(label = "Select first word") {
                     val first = text.text.indexOfFirst(Char::isLetterOrDigit)
                     first >= 0 && selectReaderWord(selection, fragment, text.text, first)
@@ -206,9 +233,22 @@ internal fun ReaderSelectableText(
                         while (true) {
                             val change = awaitPointerEvent(PointerEventPass.Initial).changes
                                 .firstOrNull { it.id == down.id }
-                            if (change == null || !change.pressed ||
+                            if (change == null ||
                                 (change.position - down.position).getDistance() > viewConfiguration.touchSlop
                             ) break
+                            if (!change.pressed) {
+                                if (selection.range == null) {
+                                    val mark = selection.highlights.asReversed().firstOrNull {
+                                        fragment.containsHighlightAt(it, down.position) &&
+                                            fragment.containsHighlightAt(it, change.position)
+                                    }
+                                    if (mark != null) {
+                                        change.consume()
+                                        selection.highlightToRemove = mark
+                                    }
+                                }
+                                break
+                            }
                         }
                         true
                     }
@@ -291,6 +331,9 @@ internal fun ReaderSelectionContainer(
     val density = LocalDensity.current
     val edge = with(density) { 52.dp.toPx() }
     val cardGap = with(density) { 44.dp.toPx() }
+    val dictionaryGap = with(density) { 16.dp.roundToPx() }
+    val safeTop = WindowInsets.safeDrawing.getTop(density)
+    val safeBottom = WindowInsets.safeDrawing.getBottom(density)
     val dragging = selection.dragPoint != null
     LaunchedEffect(selection, dragging, scrollBy, edge) {
         if (dragging && scrollBy != null) {
@@ -311,6 +354,23 @@ internal fun ReaderSelectionContainer(
     }
     val range = selection.range
     val clipboard = LocalClipboardManager.current
+
+    selection.highlightToRemove?.let { highlight ->
+        AlertDialog(
+            onDismissRequest = { selection.highlightToRemove = null },
+            title = { Text("Remove highlight?") },
+            text = { Text(highlight.quote, maxLines = 3, overflow = TextOverflow.Ellipsis) },
+            confirmButton = {
+                TextButton(onClick = {
+                    selection.highlightToRemove = null
+                    scope.launch { dao.deleteHighlight(highlight.id) }
+                }) { Text("Remove highlight") }
+            },
+            dismissButton = {
+                TextButton(onClick = { selection.highlightToRemove = null }) { Text("Cancel") }
+            }
+        )
+    }
 
     Box(Modifier.fillMaxSize()
         .onSizeChanged { viewport = it }
@@ -344,14 +404,29 @@ internal fun ReaderSelectionContainer(
                         selection.range = null
                     }
                 }
+                val singleWord = range.start.nodeId == range.end.nodeId && isReaderWord(text)
                 Surface(
                     modifier = Modifier.align(Alignment.BottomCenter)
+                        .then(if (singleWord) Modifier.padding(horizontal = 20.dp) else Modifier)
                         .onSizeChanged { cardSize = it }
                         .absoluteOffset {
                             val startY = selection.handle(range.start, true)?.y?.minus(root.y)
                             val endY = selection.handle(range.end, false)?.y?.minus(root.y)
                             val bottom = (viewport.height - cardSize.height).coerceAtLeast(0)
                             val top = when {
+                                singleWord -> {
+                                    val lineTop = selection.handle(range.start, true, lineTop = true)
+                                        ?.y?.minus(root.y)?.roundToInt()
+                                    val minTop = (safeTop - root.y.roundToInt()).coerceAtLeast(0) + dictionaryGap
+                                    val maxTop = (bottom - safeBottom - dictionaryGap).coerceAtLeast(minTop)
+                                    val above = (lineTop ?: minTop) - cardSize.height - dictionaryGap
+                                    val below = endY?.roundToInt()?.plus(cardGap.roundToInt())
+                                    when {
+                                        above >= minTop -> above.coerceAtMost(maxTop)
+                                        below != null && below <= maxTop -> below.coerceAtLeast(minTop)
+                                        else -> minTop
+                                    }
+                                }
                                 endY != null && endY + cardGap <= bottom -> bottom
                                 startY != null && startY > cardSize.height + cardGap -> 0
                                 else -> bottom
@@ -362,12 +437,15 @@ internal fun ReaderSelectionContainer(
                     tonalElevation = 6.dp,
                     shadowElevation = 4.dp
                 ) {
-                    if (range.start.nodeId == range.end.nodeId && isReaderWord(text)) {
+                    if (singleWord) {
                         val saved by remember(dao, book.uuid, range.start) {
                             dao.vocabulary(book.uuid, range.start.nodeId, range.start.offset)
                         }.collectAsState(initial = null)
                         ReaderDictionaryCard(
                             word = text,
+                            modifier = Modifier
+                                .heightIn(max = with(density) { (viewport.height * 0.55f).toDp().coerceAtLeast(160.dp) })
+                                .verticalScroll(rememberScrollState()),
                             saved = saved != null,
                             onSave = {
                                 val existing = saved

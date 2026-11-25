@@ -41,7 +41,7 @@ import ua.acclorite.book_story.presentation.navigator.Screen
 import ua.acclorite.book_story.presentation.reader.ReaderScreen
 import ua.acclorite.book_story.ui.navigator.LocalNavigator
 import ua.acclorite.book_story.ui.navigator.NavigatorIconButton
-import ua.acclorite.book_story.ui.reader.ReaderDictionaryCard
+import ua.acclorite.book_story.ui.reader.SavedWordDefinition
 import ua.acclorite.book_story.ui.reader.ReaderNoteDialog
 import java.text.DateFormat
 import java.util.Date
@@ -104,22 +104,17 @@ object WordsScreen : Screen, Parcelable {
             if (tab == 0) {
                 val entries = vocabulary.filter {
                     (book == null || book == it.bookUuid) &&
-                        (it.word.contains(query, true) || it.context.contains(query, true))
+                        it.word.contains(query, true)
                 }.let { if (alternateOrder) it.sortedBy { word -> word.word.lowercase() } else it }
                 LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (entries.isEmpty()) item { Text("No saved words") }
                     items(entries, key = { it.id }) { word ->
                         Card {
-                            Column(Modifier.fillMaxWidth().padding(12.dp)) {
-                                var expanded by rememberSaveable(word.id) { mutableStateOf(false) }
+                            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Text(word.word, style = MaterialTheme.typography.titleMedium)
-                                Text(word.context)
+                                SavedWordDefinition(word.lookupKey)
                                 MarkSource(word.bookTitle, word.author, word.chapter, word.created)
-                                if (expanded) ReaderDictionaryCard(word.lookupKey, expandedInitially = true)
                                 Row {
-                                    TextButton(onClick = { expanded = !expanded }) {
-                                        Text(if (expanded) "Hide details" else "Details")
-                                    }
                                     TextButton(onClick = {
                                         navigator.push(ReaderScreen(word.bookId, word.startNode, word.startOffset, word.bookUuid))
                                     }) { Text("Open passage") }
