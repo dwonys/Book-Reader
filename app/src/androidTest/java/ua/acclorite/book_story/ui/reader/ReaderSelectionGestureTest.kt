@@ -35,11 +35,11 @@ class ReaderSelectionGestureTest {
 
     @Test fun longPressShowsDictionaryAboveWordAndBothHandles() {
         showParagraph("dictionary-gesture-test")
+        val paragraph = compose.onNodeWithTag("paragraph").fetchSemanticsNode().boundsInRoot
         selectWord()
         compose.onNodeWithContentDescription("Selection start").assertExists()
         compose.onNodeWithContentDescription("Selection end").assertExists()
         val card = compose.onNodeWithText("Details").fetchSemanticsNode().boundsInRoot
-        val paragraph = compose.onNodeWithTag("paragraph").fetchSemanticsNode().boundsInRoot
         check(card.bottom < paragraph.top)
     }
 
